@@ -47,5 +47,5 @@ int main(int argc, char** argv) {
         cv::rectangle(cv_image, cv::Point(box.left, box.top), cv::Point(box.right, box.bottom), cv::Scalar(0, 255, 0), 2);
     }
 
-    cv::imwrite("../imgs/result.jpg", cv_image);
+    cv::imwrite("result.jpg", cv_image);
 }
