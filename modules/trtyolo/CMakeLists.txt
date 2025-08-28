@@ -88,16 +88,16 @@ install(FILES "${PROJECT_SOURCE_DIR}/cmake/tensorrt-yolo-config.cmake"
 #-------------------------------------------------------------------------------
 # Python 绑定（可选）
 #-------------------------------------------------------------------------------
-# if(BUILD_PYTHON)
-#     # 创建 Python 绑定模块
-#     pybind11_add_module(py_trtyolo ${CMAKE_CURRENT_SOURCE_DIR}/binding/trtyolo.cpp)
-#     add_target_compile_files(py_trtyolo)
-#     configure_target_common_properties(py_trtyolo)
-#     install_target(py_trtyolo "python")
+if(BUILD_PYTHON)
+    # 创建 Python 绑定模块
+    pybind11_add_module(py_trtyolo ${CMAKE_CURRENT_SOURCE_DIR}/binding/trtyolo.cpp)
+    add_target_compile_files(py_trtyolo)
+    configure_target_common_properties(py_trtyolo)
+    install_target(py_trtyolo "python")
 
-#     # 配置 Python 配置文件
-#     configure_file(
-#         ${PROJECT_SOURCE_DIR}/tensorrt_yolo/c_lib_wrap.py.in
-#         ${PROJECT_SOURCE_DIR}/tensorrt_yolo/c_lib_wrap.py
-#     )
-# endif()
+    # 配置 Python 配置文件
+    # configure_file(
+    #     ${PROJECT_SOURCE_DIR}/tensorrt_yolo/c_lib_wrap.py.in
+    #     ${PROJECT_SOURCE_DIR}/tensorrt_yolo/c_lib_wrap.py
+    # )
+endif()

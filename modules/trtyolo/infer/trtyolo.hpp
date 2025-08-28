@@ -22,7 +22,6 @@ struct TRTYOLOAPI Image {
     size_t pitch  = 0;  
 
     Image(void* data, int width, int height);
-
     Image(void* data, int width, int height, size_t pitch);
 
 };
@@ -35,6 +34,8 @@ struct TRTYOLOAPI Box {
 
     Box(float left, float top, float right, float bottom)
         : left(left), top(top), right(right), bottom(bottom) {}
+
+    friend std::ostream& operator<<(std::ostream& os, const Box& box);
 };
 
 struct TRTYOLOAPI BaseRes {
@@ -49,11 +50,16 @@ struct TRTYOLOAPI BaseRes {
 
 struct TRTYOLOAPI DetectRes : public BaseRes {
     std::vector<Box> boxes;  
+    std::vector<float> out;  
+    // float* out;
+    // int size;
 
     DetectRes() = default;
 
     DetectRes(int num, const std::vector<int>& classes, const std::vector<float>& scores, const std::vector<Box>& boxes)
         : BaseRes(num, classes, scores), boxes(boxes) {}
+
+    friend std::ostream& operator<<(std::ostream& os, const DetectRes& res);
 
 };
 
@@ -87,8 +93,6 @@ public:
 
     explicit BaseModel(const std::string& trt_engine_file, const InferOption& infer_option);
     int batch() const;
-
-    std::tuple<std::string, std::string, std::string> performanceReport();
 
 protected:
     class Impl;                   

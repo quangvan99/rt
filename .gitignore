@@ -1,5 +1,8 @@
 *.jpg
 install/
+.vscode
+tensorrt_yolo
+
 ##### Windows
 # Windows thumbnail cache files
 Thumbs.db

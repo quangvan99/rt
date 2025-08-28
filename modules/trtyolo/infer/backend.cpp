@@ -1,13 +1,3 @@
-/**
- * @file backend.cpp
- * @author laugh12321 (laugh12321@vip.qq.com)
- * @brief TensorRT 推理后端实现
- * @date 2025-01-15
- *
- * @copyright Copyright (c) 2025 laugh12321. All Rights Reserved.
- *
- */
-
 #include <algorithm>
 #include <cstring>
 
@@ -16,29 +6,22 @@
 namespace trtyolo {
 
 TrtBackend::TrtBackend(const std::string& trt_engine_file, const InferConfig& infer_config) : infer_config(infer_config) {
-    cudaSetDevice(infer_config.device_id);  // < 设置设备
-    CHECK(cudaStreamCreate(&stream));       // < 创建 stream
+    cudaSetDevice(infer_config.device_id); 
+    CHECK(cudaStreamCreate(&stream));      
 
-    // 是否支持 Zero Copy
     zero_copy_ = SupportsIntegratedZeroCopy(infer_config.device_id);
 
-    // 创建 TRTManager 实例
     manager_ = std::make_unique<TRTManager>();
-
-    // 获取 Engine Buffer
+   
     std::string engine_buffer;
     ReadBinaryFromFile(trt_engine_file, &engine_buffer);
-
-    // 调用 initialize 方法进行初始化
+   
     manager_->initialize(engine_buffer.data(), engine_buffer.size());
 
-    // 获取 TensorInfo
     getTensorInfo();
-
-    // 初始化相关变量
+   
     initialize();
 
-    // 捕获 Cuda Graph，当模型是静态时
     if (!dynamic) captureCudaGraph();
 }
 
@@ -46,21 +29,17 @@ std::unique_ptr<TrtBackend> TrtBackend::clone() {
     auto clone_backend          = std::make_unique<TrtBackend>();
     clone_backend->infer_config = infer_config;
 
-    cudaSetDevice(infer_config.device_id);            // < 设置设备
-    CHECK(cudaStreamCreate(&clone_backend->stream));  // < 创建 stream
+    cudaSetDevice(infer_config.device_id);            
+    CHECK(cudaStreamCreate(&clone_backend->stream));  
 
-    // 是否支持 Zero Copy
     clone_backend->zero_copy_ = zero_copy_;
 
     clone_backend->manager_ = manager_->clone();
-
-    // 获取 TensorInfo
+    
     clone_backend->getTensorInfo();
 
-    // 初始化相关变量
     clone_backend->initialize();
-
-    // 捕获 Cuda Graph，当模型是静态时
+    
     if (!clone_backend->dynamic) clone_backend->captureCudaGraph();
 
     return clone_backend;
@@ -89,7 +68,6 @@ void TrtBackend::getTensorInfo() {
                 shape     = manager_->getProfileShape(name.c_str(), 0, nvinfer1::OptProfileSelector::kMIN);
                 min_shape = make_int4(shape.d[0], shape.d[1], shape.d[2], shape.d[3]);
                 shape     = manager_->getProfileShape(name.c_str(), 0, nvinfer1::OptProfileSelector::kMAX);
-                // < 打印接受范围
             }
             max_shape = make_int4(shape.d[0], shape.d[1], shape.d[2], shape.d[3]);
         } else if (!input && dynamic) {

@@ -42,10 +42,16 @@ int main(int argc, char** argv) {
     );
     
     trtyolo::DetectRes res = detector->predict(input_image);
-    printDetRes(res);
-    for (const auto& box : res.boxes){
-        cv::rectangle(cv_image, cv::Point(box.left, box.top), cv::Point(box.right, box.bottom), cv::Scalar(0, 255, 0), 2);
+    // print res.out
+    std::cout << "Output tensor size: " << res.out.size() << std::endl;
+    for (size_t i = 0; i < std::min(res.out.size(), size_t(10)); ++i) {
+        std::cout << res.out[i] << " ";
     }
+    std::cout << std::endl;
+    // printDetRes(res);
+    // for (const auto& box : res.boxes){
+    //     cv::rectangle(cv_image, cv::Point(box.left, box.top), cv::Point(box.right, box.bottom), cv::Scalar(0, 255, 0), 2);
+    // }
 
-    cv::imwrite("result.jpg", cv_image);
+    // cv::imwrite("result.jpg", cv_image);
 }

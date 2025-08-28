@@ -1,13 +1,3 @@
-/**
- * @file buffer.cpp
- * @author laugh12321 (laugh12321@vip.qq.com)
- * @brief 实现了用于管理内存操作的 Buffer 类的具体方法
- * @date 2025-01-08
- *
- * @copyright Copyright (c) 2025 laugh12321. All Rights Reserved.
- *
- */
-
 #include "buffer.hpp"
 #include "utils/common.hpp"
 
@@ -33,13 +23,13 @@ DeviceBuffer& DeviceBuffer::operator=(DeviceBuffer&& other) noexcept {
 void DeviceBuffer::allocate(size_t size) {
     if (size > size_) {
         free();
-        CHECK(cudaMalloc(&device_, size));  // < 分配设备内存
+        CHECK(cudaMalloc(&device_, size)); 
         size_ = size;
     }
 }
 
 void DeviceBuffer::free() {
-    if (device_) CHECK(cudaFree(device_));  // < 释放设备内存
+    if (device_) CHECK(cudaFree(device_));  
     device_ = nullptr;
     size_   = 0;
 }
@@ -83,20 +73,20 @@ DiscreteBuffer& DiscreteBuffer::operator=(DiscreteBuffer&& other) noexcept {
 void DiscreteBuffer::allocate(size_t size) {
     if (size > size_) {
         free();
-        CHECK(cudaMallocHost(&host_, size));  // < 分配主机内存
-        CHECK(cudaMalloc(&device_, size));    // < 分配设备内存
+        CHECK(cudaMallocHost(&host_, size)); 
+        CHECK(cudaMalloc(&device_, size));   
         size_ = size;
     }
 }
 
 void DiscreteBuffer::free() {
     if (host_) {
-        CHECK(cudaFreeHost(host_));  // < 释放主机内存
-        host_ = nullptr;             // < 将指针置为 nullptr，避免双重释放
+        CHECK(cudaFreeHost(host_)); 
+        host_ = nullptr;           
     }
     if (device_) {
-        CHECK(cudaFree(device_));    // < 释放设备内存
-        device_ = nullptr;           // < 将指针置为 nullptr，避免双重释放
+        CHECK(cudaFree(device_));  
+        device_ = nullptr;         
     }
     size_ = 0;
 }
@@ -115,17 +105,17 @@ size_t DiscreteBuffer::size() const {
 
 void DiscreteBuffer::hostToDevice(cudaStream_t stream) {
     if (stream) {
-        CHECK(cudaMemcpyAsync(device_, host_, size_, cudaMemcpyHostToDevice, stream));  // < 异步拷贝主机到设备
+        CHECK(cudaMemcpyAsync(device_, host_, size_, cudaMemcpyHostToDevice, stream));  
     } else {
-        CHECK(cudaMemcpy(device_, host_, size_, cudaMemcpyHostToDevice));               // < 同步拷贝主机到设备
+        CHECK(cudaMemcpy(device_, host_, size_, cudaMemcpyHostToDevice));              
     }
 }
 
 void DiscreteBuffer::deviceToHost(cudaStream_t stream) {
     if (stream) {
-        CHECK(cudaMemcpyAsync(host_, device_, size_, cudaMemcpyDeviceToHost, stream));  // < 异步拷贝设备到主机
+        CHECK(cudaMemcpyAsync(host_, device_, size_, cudaMemcpyDeviceToHost, stream));
     } else {
-        CHECK(cudaMemcpy(host_, device_, size_, cudaMemcpyDeviceToHost));               // < 同步拷贝设备到主机
+        CHECK(cudaMemcpy(host_, device_, size_, cudaMemcpyDeviceToHost));             
     }
 }
 
@@ -152,14 +142,14 @@ UnifiedBuffer& UnifiedBuffer::operator=(UnifiedBuffer&& other) noexcept {
 void UnifiedBuffer::allocate(size_t size) {
     if (size > size_) {
         free();
-        CHECK(cudaMallocManaged(&host_, size));  // < 分配统一内存
-        device_ = host_;                         // < 设备内存和主机内存共享同一指针
+        CHECK(cudaMallocManaged(&host_, size));  
+        device_ = host_;                      
         size_   = size;
     }
 }
 
 void UnifiedBuffer::free() {
-    if (host_) CHECK(cudaFree(host_));  // < 释放统一内存
+    if (host_) CHECK(cudaFree(host_));  
     host_   = nullptr;
     device_ = nullptr;
     size_   = 0;
@@ -204,14 +194,14 @@ MappedBuffer& MappedBuffer::operator=(MappedBuffer&& other) noexcept {
 void MappedBuffer::allocate(size_t size) {
     if (size > size_) {
         free();
-        CHECK(cudaHostAlloc(&host_, size, cudaHostAllocMapped));  // < 分配映射内存
-        CHECK(cudaHostGetDevicePointer(&device_, host_, 0));      // < 获取设备指针
+        CHECK(cudaHostAlloc(&host_, size, cudaHostAllocMapped));
+        CHECK(cudaHostGetDevicePointer(&device_, host_, 0));    
         size_ = size;
     }
 }
 
 void MappedBuffer::free() {
-    if (host_) CHECK(cudaFreeHost(host_));  // < 释放映射内存
+    if (host_) CHECK(cudaFreeHost(host_)); 
     host_   = nullptr;
     device_ = nullptr;
     size_   = 0;
@@ -236,15 +226,15 @@ void MappedBuffer::deviceToHost(cudaStream_t stream) {}
 std::unique_ptr<BaseBuffer> BufferFactory::createBuffer(BufferType type) {
     switch (type) {
         case BufferType::Device:
-            return std::make_unique<DeviceBuffer>();             // < 创建设备内存
+            return std::make_unique<DeviceBuffer>();           
         case BufferType::Discrete:
-            return std::make_unique<DiscreteBuffer>();           // < 创建分离内存
+            return std::make_unique<DiscreteBuffer>();       
         case BufferType::Unified:
-            return std::make_unique<UnifiedBuffer>();            // < 创建统一内存
+            return std::make_unique<UnifiedBuffer>();         
         case BufferType::Mapped:
-            return std::make_unique<MappedBuffer>();             // < 创建映射内存
+            return std::make_unique<MappedBuffer>();           
         default:
-            throw std::invalid_argument("Unknown buffer type");  // < 未知的缓冲区类型
+            throw std::invalid_argument("Unknown buffer type"); 
     }
 }
 
