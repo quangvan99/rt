@@ -1,0 +1,2 @@
+# trtexec --onnx=yolov8n_e2e.onnx --saveEngine=yolov8n_e2e.engine --fp16
+# trtexec --onnx=yolov8n_e2e.onnx --saveEngine=yolov8n_e2e.engine --minShapes=images:1x3x640x640 --optShapes=images:4x3x640x640 --maxShapes=images:8x3x640x640 --fp16
