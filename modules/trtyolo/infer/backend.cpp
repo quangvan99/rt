@@ -7,21 +7,14 @@ namespace trtyolo {
 
 TrtBackend::TrtBackend(const std::string& trt_engine_file, const InferConfig& infer_config) : infer_config(infer_config) {
     cudaSetDevice(infer_config.device_id); 
-    CHECK(cudaStreamCreate(&stream));      
-
+    CHECK(cudaStreamCreate(&stream));
     zero_copy_ = SupportsIntegratedZeroCopy(infer_config.device_id);
-
     manager_ = std::make_unique<TRTManager>();
-   
     std::string engine_buffer;
     ReadBinaryFromFile(trt_engine_file, &engine_buffer);
-   
     manager_->initialize(engine_buffer.data(), engine_buffer.size());
-
     getTensorInfo();
-   
     initialize();
-
     if (!dynamic) captureCudaGraph();
 }
 
@@ -33,13 +26,9 @@ std::unique_ptr<TrtBackend> TrtBackend::clone() {
     CHECK(cudaStreamCreate(&clone_backend->stream));  
 
     clone_backend->zero_copy_ = zero_copy_;
-
     clone_backend->manager_ = manager_->clone();
-    
     clone_backend->getTensorInfo();
-
     clone_backend->initialize();
-    
     if (!clone_backend->dynamic) clone_backend->captureCudaGraph();
 
     return clone_backend;
@@ -75,10 +64,25 @@ void TrtBackend::getTensorInfo() {
         }
         tensor_infos.emplace_back(name, shape, dtype, input, input ? BufferType::Device : buffer_type_);
     }
+
+    for (size_t i = 0; i < tensor_infos.size(); ++i) {
+        auto& t = tensor_infos[i];
+
+        std::cout << "Tensor[" << i << "] "
+                << " | name=" << t.name
+                << " | shape=" << t.shape.nbDims;
+
+        // In chi tiết từng dimension
+        std::cout << " [";
+        for (int j = 0; j < t.shape.nbDims; ++j) {
+            if (j > 0) std::cout << ",";
+            std::cout << t.shape.d[j];
+        }
+        std::cout << "]" << std::endl;
+    }
 }
 
 void TrtBackend::initialize() {
-    // 清空并释放affine_transforms和image_buffers_中的资源
     std::vector<AffineTransform>().swap(affine_transforms);
     inputs_buffer_ = BufferFactory::createBuffer(buffer_type_);
 
@@ -92,9 +96,8 @@ void TrtBackend::initialize() {
             infer_config.input_shape->x,
             max_shape.w,
             max_shape.z);
-        inputs_buffer_->allocate(max_shape.x * input_size_);  // < 按最大情况分配空间
+        inputs_buffer_->allocate(max_shape.x * input_size_); 
     } else {
-        // 输入尺寸不固定时
         affine_transforms.resize(max_shape.x, AffineTransform());
         if (!dynamic) inputs_buffer_->allocate(max_shape.x * infer_size_);
     }
@@ -166,7 +169,7 @@ void TrtBackend::captureCudaGraph() {
         warp_affine(false, input_width, input_height);
     } else {
         inputs_buffer_->hostToDevice(stream);
-
+        // std::cout << "============>" << infer_config.input_shape.has_value() << std::endl;
         int input_width  = infer_config.input_shape ? infer_config.input_shape->y : max_shape.w;
         int input_height = infer_config.input_shape ? infer_config.input_shape->x : max_shape.z;
         warp_affine(infer_config.input_shape.has_value(), input_width, input_height);
@@ -188,9 +191,8 @@ void TrtBackend::captureCudaGraph() {
     cuda_graph_.endCapture(stream);
 
     // Step 7: Initialize CUDA Graph Nodes
-    // 如果输入形状存在且不在CUDA内存中，则不需要调用initializeNodes
     if (!(infer_config.input_shape.has_value() && !infer_config.cuda_mem)) {
-        int num_nodes = max_shape.x + (infer_config.cuda_mem ? 0 : 1);  // 如果 buffer_type 不是 Dis 也不需要 + 1
+        int num_nodes = max_shape.x + (infer_config.cuda_mem ? 0 : 1); 
         cuda_graph_.initializeNodes(num_nodes);
     }
 }
@@ -198,7 +200,7 @@ void TrtBackend::captureCudaGraph() {
 void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
     auto num = inputs.size();
 
-    // 1. 判断输入是否合法，尽早返回
+
     if (num < 1 || num > max_shape.x) {
         throw std::invalid_argument("Number of inputs out of range");
     }
@@ -206,7 +208,6 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
     if (infer_config.input_shape.has_value()) {
         if (infer_config.cuda_mem) {
             for (int idx = 0; idx < num; ++idx) {
-                // 计算 infer_device_ptr，避免重复计算
                 auto infer_device_ptr = static_cast<float*>(tensor_infos.front().buffer->device()) + idx * infer_size_;
 
                 void* kernelParams[] = {
@@ -221,7 +222,6 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
                     (void*)&affine_transforms.front().matrix[1],
                     (void*)&infer_config.config};
 
-                // 更新 kernel 参数
                 cuda_graph_.updateKernelNodeParams(idx, kernelParams);
             }
         } else {
@@ -229,18 +229,19 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
                 std::memcpy(static_cast<uint8_t*>(inputs_buffer_->host()) + idx * input_size_, inputs[idx].ptr, input_size_);
             }
         }
+
     } else {
         if (!infer_config.cuda_mem) {
             int              total_size = 0;
             std::vector<int> input_sizes(num);
 
-            // 计算输入大小，并累加总大小
+
             for (int idx = 0; idx < num; ++idx) {
                 input_sizes[idx]  = inputs[idx].height * inputs[idx].pitch;
                 total_size       += input_sizes[idx];
             }
 
-            // 在主机内存中分配空间并拷贝数据
+
             inputs_buffer_->allocate(total_size);
             uint8_t* input_ptr = static_cast<uint8_t*>(inputs_buffer_->host());
 
@@ -249,17 +250,16 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
                 input_ptr += input_sizes[idx];
             }
 
-            // 更新 Memcpy 节点
+
             if (buffer_type_ == BufferType::Discrete) {
                 cuda_graph_.updateMemcpyNodeParams(0, inputs_buffer_->host(), inputs_buffer_->device(), total_size);
             }
         }
 
-        // 更新 kernel 节点
         uint8_t* input_ptr = !infer_config.cuda_mem ? static_cast<uint8_t*>(inputs_buffer_->device()) : nullptr;
         for (int idx = 0; idx < num; ++idx) {
             affine_transforms[idx].updateMatrix(inputs[idx].width, inputs[idx].height, max_shape.w, max_shape.z);
-            // 计算 infer_device_ptr，避免重复计算
+            
             auto infer_device_ptr = static_cast<float*>(tensor_infos.front().buffer->device()) + idx * infer_size_;
 
             void* kernelParams[] = {
@@ -273,12 +273,10 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
                 (void*)&affine_transforms[idx].matrix[0],
                 (void*)&affine_transforms[idx].matrix[1],
                 (void*)&infer_config.config};
-
-            // 判断 idx 更新 kernel 参数
+   
             int node_idx = (infer_config.cuda_mem || buffer_type_ != BufferType::Discrete) ? idx : idx + 1;
             cuda_graph_.updateKernelNodeParams(node_idx, kernelParams);
 
-            // 更新 input_ptr 仅在 cuda_mem 为 false 时
             if (!infer_config.cuda_mem) {
                 input_ptr += inputs[idx].height * inputs[idx].pitch;
             }
@@ -292,12 +290,10 @@ void TrtBackend::staticInfer(const std::vector<Image>& inputs) {
 void TrtBackend::dynamicInfer(const std::vector<Image>& inputs) {
     auto num = inputs.size();
 
-    // 1. 判断输入是否合法，尽早返回
     if (num < min_shape.x || num > max_shape.x) {
         throw std::invalid_argument("Number of inputs out of range");
     }
 
-    // 更新 tensor_info 的 shape 和设备地址
     for (auto& tensor_info : tensor_infos) {
         tensor_info.shape.d[0] = num;
         tensor_info.update();
@@ -308,7 +304,7 @@ void TrtBackend::dynamicInfer(const std::vector<Image>& inputs) {
     }
 
     if (infer_config.input_shape.has_value()) {
-        // 2. 处理静态输入形状
+
         if (!infer_config.cuda_mem) {
             for (int idx = 0; idx < num; ++idx) {
                 std::memcpy(static_cast<uint8_t*>(inputs_buffer_->host()) + idx * input_size_, inputs[idx].ptr, input_size_);
@@ -333,29 +329,29 @@ void TrtBackend::dynamicInfer(const std::vector<Image>& inputs) {
         int              total_size = 0;
         std::vector<int> input_sizes(num);
 
-        // 计算输入大小，并累加总大小
+        
         for (int idx = 0; idx < num; ++idx) {
             input_sizes[idx]  = inputs[idx].height * inputs[idx].pitch;
             total_size       += input_sizes[idx];
             affine_transforms[idx].updateMatrix(inputs[idx].width, inputs[idx].height, max_shape.w, max_shape.z);
         }
 
-        // 在主机内存或设备内存中分配空间
+        
         if (!infer_config.cuda_mem) {
-            // 在主机内存中分配空间并拷贝数据
+            
             inputs_buffer_->allocate(total_size);
             uint8_t* input_host = static_cast<uint8_t*>(inputs_buffer_->host());
 
-            // 拷贝输入数据到主机内存
+            
             for (int idx = 0; idx < num; ++idx) {
                 std::memcpy(input_host, inputs[idx].ptr, input_sizes[idx]);
                 input_host += input_sizes[idx];
             }
 
-            // 拷贝到设备内存
+            
             inputs_buffer_->hostToDevice(stream);
 
-            // 在设备内存中进行 WarpAffine 操作
+            
             uint8_t* input_device = static_cast<uint8_t*>(inputs_buffer_->device());
             for (int idx = 0; idx < num; ++idx) {
                 cudaWarpAffine(
@@ -372,7 +368,7 @@ void TrtBackend::dynamicInfer(const std::vector<Image>& inputs) {
                 input_device += input_sizes[idx];
             }
         } else {
-            // 直接在设备内存上进行 WarpAffine 操作
+            
             for (int idx = 0; idx < num; ++idx) {
                 cudaWarpAffine(
                     inputs[idx].ptr,
@@ -389,19 +385,19 @@ void TrtBackend::dynamicInfer(const std::vector<Image>& inputs) {
         }
     }
 
-    // 推理
+    
     if (!manager_->enqueueV3(stream)) {
         throw std::runtime_error("Infer Error.");
     }
 
-    // 数据拷贝从设备到主机
+    
     for (auto& tensor_info : tensor_infos) {
         if (!tensor_info.input) {
             tensor_info.buffer->deviceToHost(stream);
         }
     }
 
-    // 同步流，确保所有 CUDA 操作完成
+    
     CHECK(cudaStreamSynchronize(stream));
 }
 

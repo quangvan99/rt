@@ -1,13 +1,3 @@
-/**
- * @file common.cpp
- * @author laugh12321 (laugh12321@vip.qq.com)
- * @brief 常用的工具函数、结构体和计时器类的实现
- * @date 2025-06-02
- *
- * @copyright Copyright (c) 2025
- *
- */
-
 #include <algorithm>
 #include <fstream>
 
@@ -29,11 +19,9 @@ void ReadBinaryFromFile(const std::string& file, std::string* contents) {
 }
 
 bool SupportsIntegratedZeroCopy(const int gpu_id) {
-    // 查询设备属性，检查是否为集成显卡
     cudaDeviceProp cuprops;
     CHECK(cudaGetDeviceProperties(&cuprops, gpu_id));
 
-    // 只有在集成显卡且支持映射主机内存时，才支持零拷贝
     if (cuprops.integrated && cuprops.canMapHostMemory) {
         return true;
     } else {

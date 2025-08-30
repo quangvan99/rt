@@ -51,8 +51,6 @@ struct TRTYOLOAPI BaseRes {
 struct TRTYOLOAPI DetectRes : public BaseRes {
     std::vector<Box> boxes;  
     std::vector<float> out;  
-    // float* out;
-    // int size;
 
     DetectRes() = default;
 
@@ -74,9 +72,7 @@ public:
     void enablePerformanceReport();
     void enableSwapRB();
     void setBorderValue(float border_value);
-
     void setNormalizeParams(const std::vector<float>& mean, const std::vector<float>& std);
-
     void setInputDimensions(int width, int height);
 
 private:
@@ -112,6 +108,5 @@ public:
     DetectRes predict(const Image& image);
     std::vector<DetectRes> predict(const std::vector<Image>& images);
 };
-
 
 }  

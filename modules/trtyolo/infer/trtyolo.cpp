@@ -4,7 +4,6 @@
 #include <memory>
 #include <sstream>
 #include <vector_functions.hpp>
-
 #include "backend.hpp"
 #include "utils/common.hpp"
 
@@ -106,57 +105,13 @@ public:
         return backend_->max_shape.x;
     }
 
-    // DetectRes postProcessDetect(int idx) {
-    //     auto& num_tensor   = backend_->tensor_infos[1];
-    //     auto& box_tensor   = backend_->tensor_infos[2];
-    //     auto& score_tensor = backend_->tensor_infos[3];
-    //     auto& class_tensor = backend_->tensor_infos[4];
-
-    //     std::cout << box_tensor.shape.d[1] << " " << box_tensor.shape.d[2] << std::endl;
-    //     int    num     = static_cast<int*>(num_tensor.buffer->host())[idx];
-    //     float* boxes   = static_cast<float*>(box_tensor.buffer->host()) + idx * box_tensor.shape.d[1] * box_tensor.shape.d[2];
-    //     float* scores  = static_cast<float*>(score_tensor.buffer->host()) + idx * score_tensor.shape.d[1];
-    //     int*   classes = static_cast<int*>(class_tensor.buffer->host()) + idx * class_tensor.shape.d[1];
-
-    //     DetectRes result;
-    //     result.num   = num;
-    //     int box_size = box_tensor.shape.d[2];
-
-    //     auto& affine_transform = backend_->infer_config.input_shape.has_value()
-    //                                  ? backend_->affine_transforms.front()
-    //                                  : backend_->affine_transforms[idx];
-
-    //     result.boxes.reserve(num);
-    //     result.scores.reserve(num);
-    //     result.classes.reserve(num);
-
-    //     for (int i = 0; i < num; ++i) {
-    //         int   base_index = i * box_size;
-    //         float left = boxes[base_index], top = boxes[base_index + 1];
-    //         float right = boxes[base_index + 2], bottom = boxes[base_index + 3];
-
-    //         affine_transform.applyTransform(left, top, &left, &top);
-    //         affine_transform.applyTransform(right, bottom, &right, &bottom);
-
-    //         result.boxes.emplace_back(Box{left, top, right, bottom});
-    //         result.scores.push_back(scores[i]);
-    //         result.classes.push_back(classes[i]);
-    //     }
-
-    //     return result;
-    // }
-
     DetectRes postProcessDetect(int idx) {
         auto& out   = backend_->tensor_infos[1];
         float* o   = static_cast<float*>(out.buffer->host()) + idx * out.shape.d[1] * out.shape.d[2];
 
-        // std::cout << out.shape.d[1] << " " << out.shape.d[2] << std::endl;
         DetectRes result;
         result.out.resize(out.shape.d[1] * out.shape.d[2]);
         std::memcpy(result.out.data(), o, out.shape.d[1] * out.shape.d[2] * sizeof(float));
-        // result.out = o;
-        // result.size = out.shape.d[1] * out.shape.d[2];
-
         return result;
     }
 

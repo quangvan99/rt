@@ -1,13 +1,3 @@
-/**
- * @file warpaffine.cu
- * @author laugh12321 (laugh12321@vip.qq.com)
- * @brief 仿射变换矩阵实现以及 CUDA 实现的仿射变换函数
- * @date 2025-01-09
- *
- * @copyright Copyright (c) 2025 laugh12321. All Rights Reserved.
- *
- */
-
 #include <cstdint>
 
 #include "warpaffine.hpp"

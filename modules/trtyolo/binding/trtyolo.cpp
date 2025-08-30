@@ -1,29 +1,13 @@
-/**
- * @file pybind.cpp
- * @author laugh12321 (laugh12321@vip.qq.com)
- * @brief TensorRT-YOLO的Python绑定，提供结果、选项和模型模块的包装
- * @date 2025-01-17
- *
- * @copyright Copyright (c) 2025 laugh12321. All Rights Reserved.
- */
-
 #include <pybind11/cast.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
-
 #include <sstream>
-
 #include "infer/trtyolo.hpp"
 
 namespace py = pybind11;
 
-/**
- * @brief 绑定result.hpp文件，包括Mask、KeyPoint、Box等类。
- *
- * 该模块包装了多个与结果相关的类，如Mask、KeyPoint、Box等，并提供与数据交互的方法，
- * 以及将它们转换为NumPy数组以便在Python中更容易操作的功能。
- */
+
 void binding_result_module(py::module& m) {
     m.doc() = "Result module of TensorRT-YOLO, including Mask, KeyPoint, Box, and other result-related classes.";
 

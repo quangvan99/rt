@@ -1,11 +1,9 @@
 #pragma once
 
 #include <NvInferRuntime.h>
-
 #include <memory>
 #include <string>
 #include <vector>
-
 #include "core/buffer.hpp"
 #include "core/core.hpp"
 #include "trtyolo.hpp"
@@ -48,7 +46,6 @@ private:
     BufferType                  buffer_type_;    
 
     bool zero_copy_;                             
-
     int input_size_;                             
     int infer_size_;                             
 };
